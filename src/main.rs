@@ -132,7 +132,7 @@ pub struct BinTree<T>(Option<Box<BinData<T>>>);
 #[derive(Debug)]
 pub struct BinData<T> {
     data: T,
-    h: i8,
+    h: i32,
     left: BinTree<T>,
     right: BinTree<T>,
 }
@@ -181,7 +181,7 @@ impl<T> BinTree<T> {
     pub fn new() -> Self {
         BinTree(None)
     }
-    pub fn height(&mut self) -> i8 {
+    pub fn height(&mut self) -> i32 {
         match self.0 {
             Some(ref t) => t.h,
             None => 0,
@@ -242,8 +242,8 @@ impl<T: PartialOrd> BinTree<T> {
         };
 
         match rot_dir {
-            1 => self.rot_right(),
-            -1 => self.rot_left(),
+            -1 => self.rot_right(),
+            1 => self.rot_left(),
             _ => self.set_height(),
         }
     }
@@ -297,6 +297,38 @@ mod tests {
         t.add_sorted(3);
         t.add_sorted(2);
         t.add_sorted(10);
+        t.print_lfirst(0);
+    }
+
+    #[test]
+    fn test_balance_bintree() {
+        let mut t = BinTree::new();
+        t.add_sorted(4);
+        t.add_sorted(5);
+        t.add_sorted(6);
+        t.add_sorted(3);
+        t.add_sorted(2);
+        t.add_sorted(10);
+        t.print_lfirst(0);
+
+        println!("--------");
+        t.rot_left();
+        t.print_lfirst(0);
+    }
+
+    #[test]
+    fn test_balance_bintree_latest() {
+        let mut t = BinTree::new();
+        t.add_sorted(4);
+        t.add_sorted(5);
+        t.add_sorted(6);
+        t.add_sorted(3);
+        t.add_sorted(2);
+        t.add_sorted(10);
+
+        for i in 0..100000 {
+            t.add_sorted(i);
+        }
         t.print_lfirst(0);
     }
 }
