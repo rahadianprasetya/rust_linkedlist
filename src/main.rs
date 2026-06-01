@@ -1,3 +1,4 @@
+use core::str;
 // Refcell, Immutable outside, but can mutate interior
 // Rc, Reference counting pointer
 use std::{
@@ -457,6 +458,66 @@ impl HuffNode {
             }
         }
     }
+
+    pub fn encode_char(&self, c: char) -> Option<Vec<char>> {
+        // could return vec of bool but chars print nicer
+        // once you have this converting it to a byte stream is pretty straight forward
+        match self {
+            HuffNode::Tree(l, r) => {
+                if let Some(mut v) = l.encode_char(c) {
+                    v.insert(0, '0');
+                    return Some(v);
+                }
+
+                if let Some(mut v) = r.encode_char(c) {
+                    v.insert(0, '1');
+                    return Some(v);
+                }
+                None
+            }
+            HuffNode::Leaf(nc) => {
+                if c == *nc {
+                    return Some(Vec::new());
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    pub fn encode_str(&self, s: &str) -> Option<Vec<char>> {
+        let mut res = Vec::new();
+        for c in s.chars() {
+            let v = self.encode_char(c)?;
+            res.extend(v.into_iter());
+        }
+        Some(res)
+    }
+
+    pub fn decode_bits(&self, bits: Option<Vec<char>>) -> Option<String> {
+        let bits = bits?;
+        let mut result = String::new();
+        let mut current = self;
+
+        for &bit in &bits {
+            current = match (current, bit) {
+                (HuffNode::Tree(l, _), '0') => l,
+                (HuffNode::Tree(_, r), '1') => r,
+                _ => return None,
+            };
+
+            if let HuffNode::Leaf(c) = current {
+                result.push(*c);
+                current = self;
+            }
+        }
+
+        if !std::ptr::eq(current, self) {
+            return None;
+        }
+
+        Some(result)
+    }
 }
 
 pub fn build_tree(s: &str) -> HuffNode {
@@ -593,5 +654,39 @@ mod tests {
         let s = "at an apple app";
         let t = build_tree(s);
         t.print_lfirst(0, '<');
+    }
+
+    #[test]
+    fn test_huffman_encode() {
+        let s = "at an apple app";
+        let t = build_tree(s);
+        t.print_lfirst(0, '<');
+
+        println!("n = {:?}", t.encode_char('n'));
+    }
+
+    #[test]
+    fn test_huffman_encode_str() {
+        let s = "at an apple app";
+        let t = build_tree(s);
+        t.print_lfirst(0, '<');
+
+        println!("n = {:?}", t.encode_char('n'));
+
+        let encoded = t.encode_str(s).expect("encode gagal");
+        println!("encoded = {:?}", encoded);
+    }
+
+    #[test]
+    fn test_huffman_decode() {
+        let s = "at an apple app";
+        let t = build_tree(s);
+        t.print_lfirst(0, '<');
+
+        println!("n = {:?}", t.encode_char('n'));
+
+        let res = t.encode_str(s);
+        println!("en = {:?}", res);
+        println!("db = {:?}", t.decode_bits(res));
     }
 }
