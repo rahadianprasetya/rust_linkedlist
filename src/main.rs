@@ -2,7 +2,9 @@
 // Rc, Reference counting pointer
 use std::{
     cell::RefCell,
+    char,
     cmp::max,
+    collections::BTreeMap,
     fmt::{Debug, Display, Write},
     rc::{Rc, Weak},
 };
@@ -422,11 +424,84 @@ impl<T: Debug + PartialOrd> Display for SkipList<T> {
     }
 }
 
+// HUFFMAN
+#[derive(Debug)]
+pub enum HuffNode {
+    Tree(Box<HuffNode>, Box<HuffNode>),
+    Leaf(char),
+}
+
+pub struct HScore {
+    h: HuffNode,
+    s: i32,
+}
+
+impl HuffNode {
+    pub fn print_lfirst(&self, depth: i32, dir: char) {
+        match self {
+            HuffNode::Tree(l, r) => {
+                l.print_lfirst(depth + 1, '/');
+                let mut spc = String::new();
+                for _ in 0..depth {
+                    spc.push('.');
+                }
+                println!("{}{}*", spc, dir);
+                r.print_lfirst(depth + 1, '\\');
+            }
+            HuffNode::Leaf(c) => {
+                let mut spc = String::new();
+                for _ in 0..depth {
+                    spc.push('.');
+                }
+                println!("{}{}{}", spc, dir, c);
+            }
+        }
+    }
+}
+
+pub fn build_tree(s: &str) -> HuffNode {
+    let mut map = BTreeMap::new();
+
+    for c in s.chars() {
+        // if map has already add 1 else put 1
+        let n = *map.get(&c).unwrap_or(&0);
+        map.insert(c, n + 1);
+    }
+
+    let mut tlist: Vec<HScore> = map
+        .into_iter()
+        .map(|(k, s)| HScore {
+            h: HuffNode::Leaf(k),
+            s,
+        })
+        .collect();
+
+    while tlist.len() > 1 {
+        let last = tlist.len() - 1;
+        for i in 0..last - 1 {
+            if tlist[i].s < tlist[last - 1].s {
+                tlist.swap(i, last - 1);
+            }
+            if tlist[last - 1].s < tlist[last].s {
+                tlist.swap(last - 1, last);
+            }
+        }
+        let a_node = tlist.pop().unwrap(); // len >=2
+        let b_node = tlist.pop().unwrap();
+        let nnode = HuffNode::Tree(Box::new(a_node.h), Box::new(b_node.h));
+        tlist.push(HScore {
+            h: nnode,
+            s: a_node.s + b_node.s,
+        });
+    }
+    tlist.pop().unwrap().h
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::LinkedList;
 
-    use crate::{BinTree, DbList, SkipList, SkipNode};
+    use crate::{BinTree, DbList, SkipList, SkipNode, build_tree};
 
     #[test]
     fn test_linkedlist() {
@@ -511,5 +586,12 @@ mod tests {
         s.insert(88);
         s.insert(23);
         println!("s={}", s);
+    }
+
+    #[test]
+    fn test_huffman() {
+        let s = "at an apple app";
+        let t = build_tree(s);
+        t.print_lfirst(0, '<');
     }
 }
